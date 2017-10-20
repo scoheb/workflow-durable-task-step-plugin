@@ -71,6 +71,9 @@ public abstract class DurableTaskStep extends Step {
     private String encoding = DurableTaskStepDescriptor.defaultEncoding;
     private boolean returnStatus;
 
+    private static /* not final */ int PROCESS_CHECK_TIMEOUT = Integer.getInteger(DurableTaskStep.class.getName() + ".PROCESS_CHECK_TIMEOUT", 60);
+    private static /* not final */ int WORKSPACE_CHECK_TIMEOUT = Integer.getInteger(DurableTaskStep.class.getName() + ".WORKSPACE_CHECK_TIMEOUT", 60);
+
     protected abstract DurableTask task();
 
     public boolean isReturnStdout() {
@@ -189,7 +192,7 @@ public abstract class DurableTaskStep extends Step {
                 }
             }
             boolean directory;
-            try (Timeout timeout = Timeout.limit(10, TimeUnit.SECONDS)) {
+            try (Timeout timeout = Timeout.limit(WORKSPACE_CHECK_TIMEOUT, TimeUnit.SECONDS)) {
                 directory = ws.isDirectory();
             } catch (Exception x) {
                 // RequestAbortedException, ChannelClosedException, EOFException, wrappers thereof; InterruptedException if it just takes too long.
@@ -312,7 +315,7 @@ public abstract class DurableTaskStep extends Step {
             if (workspace == null) {
                 return; // slave not yet ready, wait for another day
             }
-            try (Timeout timeout = Timeout.limit(10, TimeUnit.SECONDS)) {
+            try (Timeout timeout = Timeout.limit(PROCESS_CHECK_TIMEOUT, TimeUnit.SECONDS)) {
                         if (controller.writeLog(workspace, logger())) {
                             getContext().saveState();
                             recurrencePeriod = MIN_RECURRENCE_PERIOD; // got output, maybe we will get more soon
